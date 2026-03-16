@@ -26,9 +26,20 @@ CHANNEL_TOPIC_MAP = {
     1410047255716692008: 16,
     1379938404082516148: 18,
     1363305237900951582: 20,
-    1247912859141279784: 25,
+    1247908965786849381: 25,
     1182042555756597410: 27,
     1208146686158049352: 29,
+}
+
+# Discord channel ID -> Display name shown in Telegram messages
+CHANNEL_NAME_MAP = {
+    1192138473637937193: "Neil",
+    1410047255716692008: "Saltwayer",
+    1379938404082516148: "Certa",
+    1363305237900951582: "Shirus",
+    1247908965786849381: "Belovy",
+    1182042555756597410: "Timm",
+    1208146686158049352: "Jason",
 }
 
 MAX_CAPTION_LEN = 1024  # Telegram caption limit
@@ -88,10 +99,9 @@ def build_embed_text(embed: discord.Embed, author_name: str) -> str:
 def build_text_message(message: discord.Message) -> str:
     """Build a plain text forward from a normal Discord message."""
     parts = []
-    header = f"<b>{escape_html(message.author.display_name)}</b>"
-    if message.guild:
-        header += f" in <b>#{escape_html(message.channel.name)}</b>"
-    parts.append(header)
+
+    channel_name = CHANNEL_NAME_MAP.get(message.channel.id, message.channel.name)
+    parts.append(f"<b>{escape_html(channel_name)}</b>")
 
     if message.content:
         parts.append(escape_html(message.content))
@@ -127,10 +137,13 @@ class Forwarder(discord.Client):
         log.warning("Discord disconnected - will auto-reconnect")
 
     async def on_message(self, message: discord.Message):
-        # Ignore bots and DMs
-        if message.author.bot:
+        # Ignore DMs only
+        if not message.guild:
             return
-
+    
+        # Log every message so we can see what channels are active
+        log.info("Saw message in channel %s from %s (bot=%s)", message.channel.id, message.author.display_name, message.author.bot)
+    
         topic_id = CHANNEL_TOPIC_MAP.get(message.channel.id)
         if topic_id is None:
             return
